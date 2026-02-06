@@ -1,0 +1,33 @@
+---
+title: "script_projet"
+output: html_document
+---
+
+```{r message=FALSE}
+if (!"pacman" %in% installed.packages()) {
+  install.packages("pacman")
+}
+library(pacman)
+
+pacman::p_load(char = c("dplyr", "tidyr", "ggplot2"))
+```
+
+```{r}
+bdd <- read.csv2("creation.csv")
+```
+
+```{r}
+glimpse(bdd)
+```
+
+```{r}
+unique(bdd$Departement)
+```
+
+```{r}
+bdd_analyse <- bdd %>% 
+  pivot_longer(cols = -Departement) %>% 
+  mutate(annee = substr(name, 2, 5), .before = name,
+         name = substr(name, 7, 7))
+```
+
