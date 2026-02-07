@@ -1,33 +1,576 @@
 ---
-title: "script_projet"
-output: html_document
+title: "Projet réduction dimension (Ensai, 3A)"
+author: "Thomas Guinhut et Eulalie Delaune"
+date: "Février 2026"
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    toc_float: true
+  pdf_document: default
 ---
 
-```{r message=FALSE}
+```{r message=FALSE, include=FALSE}
 if (!"pacman" %in% installed.packages()) {
   install.packages("pacman")
 }
 library(pacman)
 
-pacman::p_load(char = c("dplyr", "tidyr", "ggplot2"))
+pacman::p_load(char = c("dplyr", "tidyr", "ggplot2", "esquisse", "ggrepel",
+                        "FactoMineR", "factoextra", "ClustOfVar",
+                        "RColorBrewer", "gtsummary"))
 ```
 
 ```{r}
-bdd <- read.csv2("creation.csv")
+bdd <- read.csv2("creation.csv") %>% 
+  rename(
+    departement = Departement,
+    industrie_2013 = X2013_C,
+    energie_2013 = X2013_D,
+    environnement_2013 = X2013_E,
+    construction_2013 = X2013_F,
+    commerce_2013 = X2013_G,
+    transport_2013 = X2013_H,
+    hotellerie_2013 = X2013_I,
+    information_2013 = X2013_J,
+    finance_2013 = X2013_K,
+    immobilier_2013 = X2013_L,
+    science_2013 = X2013_M,
+    administration_2013 = X2013_N,
+    enseignement_2013 = X2013_P,
+    sante_2013 = X2013_Q,
+    culture_2013 = X2013_R,
+    services_2013 = X2013_S,
+    industrie_2023 = X2023_C,
+    energie_2023 = X2023_D,
+    environnement_2023 = X2023_E,
+    construction_2023 = X2023_F,
+    commerce_2023 = X2023_G,
+    transport_2023 = X2023_H,
+    hotellerie_2023 = X2023_I,
+    information_2023 = X2023_J,
+    finance_2023 = X2023_K,
+    immobilier_2023 = X2023_L,
+    science_2023 = X2023_M,
+    administration_2023 = X2023_N,
+    enseignement_2023 = X2023_P,
+    sante_2023 = X2023_Q,
+    culture_2023 = X2023_R,
+    services_2023 = X2023_S
+  )
 ```
 
-```{r}
+```{r include=FALSE}
 glimpse(bdd)
 ```
 
-```{r}
-unique(bdd$Departement)
+```{r include=FALSE}
+unique(bdd$departement)
 ```
+
+# Question 1 : pourquoi faire une AFM ?
+
+## La structure de la base de données se prête à une AFM.
+
+## La lecture des données invite à faire une AFM
 
 ```{r}
 bdd_analyse <- bdd %>% 
-  pivot_longer(cols = -Departement) %>% 
-  mutate(annee = substr(name, 2, 5), .before = name,
-         name = substr(name, 7, 7))
+  pivot_longer(cols = -departement) %>% 
+  mutate(annee = substr(name, nchar(name) - 3, nchar(name)), .before = name,
+         name = sub("_.*", "", name)) %>% 
+  mutate(secteur = case_when(
+    name == "industrie" ~ "Industrie",
+    name == "energie" ~ "Énergie",
+    name == "environnement" ~ "Environnement",
+    name == "construction" ~ "Construction",
+    name == "commerce" ~ "Commerce",
+    name == "transport" ~ "Transport",
+    name == "hotellerie" ~ "Hôtellerie",
+    name == "information" ~ "Information",
+    name == "finance" ~ "Finance",
+    name == "immobilier" ~ "Immobilier",
+    name == "science" ~ "Science",
+    name == "administration" ~ "Administration",
+    name == "enseignement" ~ "Enseignement",
+    name == "sante" ~ "Santé",
+    name == "culture" ~ "Culture",
+    name == "service" ~ "Services"
+  ))
+```
+
+```{r, warning=FALSE}
+creer_graphiques_par_groupe <- function(bdd_analyse, bdd_labels_left,
+                                        bdd_labels_right, n_par_graphique = 8,
+                                        maxoverlap) {
+  
+  bdd_labels_left <- bdd_analyse %>%
+  filter(annee == min(annee))
+
+  bdd_labels_right <- bdd_analyse %>%
+    filter(annee == max(annee))
+  
+  variables <- unique(bdd_analyse$secteur)
+  
+  n_graphiques <- ceiling(length(variables) / n_par_graphique)
+  
+  liste_graphiques <- list()
+  
+  for (i in 1:n_graphiques) {
+    
+    debut <- (i - 1) * n_par_graphique + 1
+    fin <- min(i * n_par_graphique, length(variables))
+    
+    vars_groupe <- variables[debut:fin]
+    
+    g <- ggplot(bdd_analyse %>% filter(secteur %in% vars_groupe),
+                aes(x = annee,
+                    y = value,
+                    group = departement,
+                    col = departement)) + 
+      geom_line() +
+      geom_point() +
+      
+      geom_text_repel(data = bdd_labels_left %>% filter(secteur %in% vars_groupe),
+                      aes(label = departement),
+                      hjust = 1,
+                      size = 3,
+                      direction = "y",
+                      max.overlaps = maxoverlap,
+                      show.legend = FALSE) +
+      geom_text_repel(data = bdd_labels_right %>% filter(secteur %in% vars_groupe),
+                      aes(label = departement),
+                      hjust = -0.1, 
+                      size = 3,
+                      direction = "y",
+                      max.overlaps = maxoverlap,
+                      show.legend = FALSE) +
+      
+      facet_wrap(~ secteur, nrow = 4, ncol = 2, scales = "free") +
+      guides(col = "none")
+    
+    liste_graphiques[[i]] <- g
+  }
+  
+  return(liste_graphiques)
+}
+
+graphiques <- creer_graphiques_par_groupe(bdd_analyse, bdd_labels_left,
+                                          bdd_labels_right, n_par_graphique = 4,
+                                          maxoverlap = 10)
+
+graphiques[[1]] 
+graphiques[[2]]
+graphiques[[3]]
+graphiques[[4]]
+```
+
+On observe la prédominance de Paris dans certains secteurs d'activité spécialisés comme la finance, la culture, l'enseignement, la recherche, l'information et la communication. D'autres départements se démarquent dans quelques secteurs, comme la Seine-Saint-Denis pour les transports (on suppose du fait de l'aéroport Charles-de-Gaulle), le Nord pour l'industrie manufacturielle (qui est historiquement une activité importante pour ce département) et les Bouche-du-Rhone pour la construction, là où l'immobilier y est également important (supposément pour l'attrait suscité par ce département balnéaire).
+
+Pour s'extirper du problème des individus atypiques, on propose de calculer, pour chaque année, la part de chaque secteur dans chaque département.
+
+```{r}
+calculer_proportions <- function(data) {
+  
+  cols_2013 <- grep("2013$", names(bdd), value = TRUE)
+  cols_2023 <- grep("2023$", names(bdd), value = TRUE)
+  
+  data_2013_prop <- data %>%
+    select(departement, all_of(cols_2013)) %>%
+    mutate(
+      total_2013 = rowSums(select(., -departement)),
+      across(all_of(cols_2013), ~ . / total_2013 * 100, .names = "{.col}_prop")
+    ) %>%
+    select(departement, ends_with("_prop")) %>%
+    rename_with(~ gsub("_prop", "", .), ends_with("_prop"))
+  
+  data_2023_prop <- data %>%
+    select(departement, all_of(cols_2023)) %>%
+    mutate(
+      total_2023 = rowSums(select(., -departement)),
+      across(all_of(cols_2023), ~ . / total_2023 * 100, .names = "{.col}_prop")
+    ) %>%
+    select(departement, ends_with("_prop")) %>%
+    rename_with(~ gsub("_prop", "", .), ends_with("_prop"))
+  
+  data_prop <- left_join(data_2013_prop, data_2023_prop, by = "departement")
+  
+  return(data_prop)
+}
+
+bdd_prop <- calculer_proportions(bdd)
+
+bdd_prop_analyse <- bdd_prop %>% 
+  pivot_longer(cols = -departement) %>% 
+  mutate(annee = substr(name, nchar(name) - 3, nchar(name)), .before = name,
+         name = sub("_.*", "", name)) %>% 
+  mutate(secteur = case_when(
+    name == "industrie" ~ "Industrie",
+    name == "energie" ~ "Énergie",
+    name == "environnement" ~ "Environnement",
+    name == "construction" ~ "Construction",
+    name == "commerce" ~ "Commerce",
+    name == "transport" ~ "Transport",
+    name == "hotellerie" ~ "Hôtellerie",
+    name == "information" ~ "Information",
+    name == "finance" ~ "Finance",
+    name == "immobilier" ~ "Immobilier",
+    name == "science" ~ "Science",
+    name == "administration" ~ "Administration",
+    name == "enseignement" ~ "Enseignement",
+    name == "sante" ~ "Santé",
+    name == "culture" ~ "Culture",
+    name == "service" ~ "Services"
+  ))
+```
+
+```{r, warning=FALSE}
+graphiques_prop <- creer_graphiques_par_groupe(bdd_prop_analyse,
+                                               bdd_labels_left,
+                                               bdd_labels_right,
+                                               n_par_graphique = 4,
+                                               maxoverlap = 10)
+
+graphiques_prop[[1]] 
+graphiques_prop[[2]]
+graphiques_prop[[3]]
+graphiques_prop[[4]]
+```
+
+Cette fois-ci, il n'y pas de département qui semble se distinguer, si ce n'est Mayotte pour la construction. Il sera éventuellement à mettre en supplémentaire lors de l'AFM.
+
+```{r}
+graphique_comparaison_dept <- function(bdd_analyse, departements,
+                                       maxoverlap = 4) {
+  
+  bdd_filtre <- bdd_analyse %>% filter(departement %in% departements)
+  
+  bdd_labels <- bdd_filtre %>%
+    group_by(departement, secteur) %>%
+    filter(annee == max(annee))
+
+  g <- ggplot(bdd_filtre,
+              aes(x = annee,
+                  y = value,
+                  group = secteur,
+                  col = secteur)) + 
+    geom_line() +
+    geom_point() +
+    
+    geom_text_repel(data = bdd_labels,
+                    aes(label = secteur),
+                    hjust = -0.1,
+                    size = 3,
+                    direction = "y",
+                    max.overlaps = maxoverlap,
+                    show.legend = FALSE) +
+    
+    facet_wrap(~ departement, nrow = 1, ncol = 2) +
+    guides(col = "none")
+  
+  return(g)
+}
+```
+
+```{r warning=FALSE}
+graphique_comparaison_dept(bdd_analyse, c("Paris", "Seine-Saint-Denis"))
+graphique_comparaison_dept(bdd_prop_analyse, c("Paris", "Seine-Saint-Denis"))
+```
+
+
+```{r}
+corrplot::corrplot(cor(
+  bdd[,colnames(bdd) != "departement"],
+                         use = "complete.obs"), method = "color",
+  type = "upper", tl.col = "black", tl.srt = 45, tl.cex = 0.6)
+```
+
+```{r}
+corrplot::corrplot(cor(
+  bdd_prop[,colnames(bdd_prop) != "departement"],
+                         use = "complete.obs"), method = "color",
+  type = "upper", tl.col = "black", tl.srt = 45, tl.cex = 0.6)
+```
+
+# Question 2 : mise en oeuvre de l'AFM
+
+## Sur les données brutes
+
+```{r}
+bdd_mfa <- bdd
+rownames(bdd_mfa) <- bdd_mfa$departement
+bdd_mfa$departement <- NULL
+```
+
+```{r}
+res.MFA <- MFA(bdd_mfa,
+               group = c(16,16),
+               type = rep("c", 2),
+               ncp = 5,
+               name.group = c("2013", "2023"),
+               graph = F)
+```
+
+```{r, warning=FALSE}
+fviz_screeplot(res.MFA)
+```
+
+```{r}
+plot(res.MFA, choix = "axes", axes = c(1, 2), 
+     habillage = "group",
+     palette = brewer.pal(3, "Set2"),
+     repel = TRUE,
+     cex = 0.9)
+plot(res.MFA, choix = "axes", axes = c(1, 3), 
+     habillage = "group",
+     palette = brewer.pal(3, "Set2"),
+     repel = TRUE,
+     cex = 0.9)
+```
+
+Les deux premiers axes permettent de capter 95% de l'inertie du nuage des individus partiels, et les composantes construites pour 2013 et 2023 sont très proches l'une de l'autre, synonyme d'un référentiel commun pour faire une anaylse de ces deux photographies de l'activité économique.
+
+```{r, warning=FALSE}
+plot(res.MFA, choix = "var", axes = c(1, 2), 
+     habillage = "group",
+     palette = brewer.pal(3, "Set2"),
+     repel = TRUE,
+     cex = 0.9,
+     select = "contrib 10")
+```
+
+La première composante reflète un effet taille. La deuxième n'est pas marquée par beaucoup de corrélations
+
+```{r}
+fviz_contrib(res.MFA, choice = "quanti.var", axes = 1, top = 10,
+             palette = brewer.pal(3, "Set2")[2:3])
+fviz_contrib(res.MFA, choice = "quanti.var", axes = 2, top = 10,
+             palette = brewer.pal(3, "Set2")[2:3])
+```
+
+
+```{r}
+plot(res.MFA, choix = "group", palette = brewer.pal(3, "Set2"))
+```
+
+```{r warning=FALSE}
+fviz_mfa_ind(res.MFA, partial = "all", invisible = "ind.sup", 
+             repel = TRUE, labelsize = 3,
+             select.ind = list(cos2 = 0.8,
+                               name = as.data.frame(res.MFA$ind$coord) %>%
+                                 filter(Dim.1 > 1) %>% 
+                                 rownames()),
+             geom = "point",
+             palette = brewer.pal(3, "Set2")[2:3]) +
+  geom_text_repel(aes(label = name), size = 3,
+                  box.padding = 0.5,
+                  bg.color = "white",
+                  bg.r = 0.1)
+```
+
+## Sur les proportions
+
+```{r}
+bdd_prop_mfa <- bdd_prop
+rownames(bdd_prop_mfa) <- bdd_prop_mfa$departement
+bdd_prop_mfa$departement <- NULL
+```
+
+```{r}
+res.MFAprop <- MFA(bdd_prop_mfa,
+                   group = c(16,16),
+                   type = rep("c", 2),
+                   ncp = 5,
+                   name.group = c("2013", "2023"),
+                   graph = F)
+```
+
+```{r, warning=FALSE}
+fviz_screeplot(res.MFAprop)
+```
+
+```{r}
+plot(res.MFAprop, choix = "axes", axes = c(1, 2), 
+     habillage = "group",
+     palette = brewer.pal(3, "Set2"),
+     repel = TRUE,
+     cex = 0.9)
+plot(res.MFAprop, choix = "axes", axes = c(1, 3), 
+     habillage = "group",
+     palette = brewer.pal(3, "Set2"),
+     repel = TRUE,
+     cex = 0.9)
+```
+
+```{r, warning=FALSE}
+plot(res.MFAprop, choix = "var", axes = c(1, 2), 
+     habillage = "group",
+     palette = brewer.pal(3, "Set2"),
+     repel = TRUE,
+     cex = 0.9,
+     select = "contrib 10")
+```
+
+```{r}
+fviz_contrib(res.MFAprop, choice = "quanti.var", axes = 1, top = 10,
+             palette = brewer.pal(3, "Set2")[2:3])
+fviz_contrib(res.MFAprop, choice = "quanti.var", axes = 2, top = 10,
+             palette = brewer.pal(3, "Set2")[2:3])
+```
+
+```{r}
+plot(res.MFAprop, choix = "group", palette = brewer.pal(3, "Set2"))
+```
+
+```{r warning=FALSE}
+fviz_mfa_ind(res.MFAprop, partial = "all", invisible = "ind.sup", 
+             repel = TRUE, labelsize = 3,
+             select.ind = list(cos2 = 0.8,
+                               name = as.data.frame(res.MFAprop$ind$coord) %>%
+                                 filter(Dim.1 > 1 | Dim.1 < -1 |
+                                          Dim.2 > 1 | Dim.2 < -1) %>% 
+                                 rownames()),
+             geom = "point",
+             palette = brewer.pal(3, "Set2")[2:3]) +
+  geom_text_repel(aes(label = name), size = 3,
+                  box.padding = 0.5,
+                  bg.color = "white",
+                  bg.r = 0.1)
+```
+
+## Sur les proportions hors Mayotte
+
+```{r}
+res.MFAprop_horsMayotte <- MFA(bdd_prop_mfa,
+                               group = c(16,16),
+                               type = rep("c", 2),
+                               ncp = 5,
+                               ind.sup = which(rownames(bdd_prop_mfa) == "Mayotte"),
+                               name.group = c("2013", "2023"),
+                               graph = F)
+```
+
+```{r, warning=FALSE}
+fviz_screeplot(res.MFAprop_horsMayotte)
+```
+
+```{r}
+plot(res.MFAprop_horsMayotte, choix = "axes", axes = c(1, 2), 
+     habillage = "group",
+     palette = brewer.pal(3, "Set2"),
+     repel = TRUE,
+     cex = 0.9)
+plot(res.MFAprop_horsMayotte, choix = "axes", axes = c(1, 3), 
+     habillage = "group",
+     palette = brewer.pal(3, "Set2"),
+     repel = TRUE,
+     cex = 0.9)
+```
+
+```{r}
+plot(res.MFAprop_horsMayotte, choix = "var", axes = c(1, 2), 
+     habillage = "group",
+     palette = brewer.pal(3, "Set2"),
+     repel = TRUE,
+     cex = 0.9,
+     select = "contrib 10")
+```
+
+```{r}
+fviz_contrib(res.MFAprop_horsMayotte, choice = "quanti.var", axes = 1, top = 10,
+             palette = brewer.pal(3, "Set2")[2:3])
+fviz_contrib(res.MFAprop_horsMayotte, choice = "quanti.var", axes = 2, top = 10,
+             palette = brewer.pal(3, "Set2")[2:3])
+```
+
+```{r}
+plot(res.MFAprop_horsMayotte, choix = "group", palette = brewer.pal(3, "Set2"))
+```
+
+```{r}
+fviz_mfa_ind(res.MFAprop_horsMayotte, partial = "all", invisible = "ind.sup", 
+             repel = TRUE, labelsize = 3,
+             select.ind = list(
+               cos2 = 0.8,
+               name = as.data.frame(res.MFAprop_horsMayotte$ind$coord) %>%
+                                 filter(Dim.1 > 1.5 | Dim.1 < -1.5 |
+                                          Dim.2 > 1.5 | Dim.2 < -1.5) %>% 
+                                 rownames()),
+             geom = "point",
+             palette = brewer.pal(3, "Set2")[2:3]) +
+  geom_text_repel(aes(label = name), size = 3,
+                  box.padding = 0.5,
+                  bg.color = "white",
+                  bg.r = 0.1)
+```
+
+# Question 3 : classification des départements
+
+## Nuage des individus moyens
+
+```{r}
+c.MFA <- HCPC(res.MFAprop_horsMayotte, nb.clust=-1, graph = FALSE)
+```
+
+```{r warning=FALSE}
+fviz_dend(c.MFA, k = 5, show_labels = TRUE, rect = TRUE, cex = 0.4)
+fviz_cluster(c.MFA, ggtheme = theme_minimal(), repel = TRUE, labelsize = 6)
+```
+
+```{r}
+c.MFA$data.clust %>% 
+  tbl_summary(by = clust)
+```
+
+## Nuage des individus 2013
+
+```{r}
+c.MFA2013 <- HCPC(as.data.frame(
+  res.MFAprop_horsMayotte$ind$coord.partiel[
+    grep("2013$", rownames(res.MFAprop_horsMayotte$ind$coord.partiel)), ]),
+  nb.clust=-1, graph = FALSE)
+```
+
+```{r warning=FALSE}
+fviz_dend(c.MFA2013, k = 5, show_labels = TRUE, rect = TRUE, cex = 0.4)
+fviz_cluster(c.MFA2013, ggtheme = theme_minimal(), repel = TRUE, labelsize = 6)
+```
+
+## Nuage des individus 2023
+
+```{r}
+c.MFA2023 <- HCPC(as.data.frame(
+  res.MFAprop_horsMayotte$ind$coord.partiel[
+    grep("2023$", rownames(res.MFAprop_horsMayotte$ind$coord.partiel)), ]),
+  nb.clust=-1, graph = FALSE)
+```
+
+```{r warning=FALSE}
+fviz_dend(c.MFA2023, k = 5, show_labels = TRUE, rect = TRUE, cex = 0.4)
+fviz_cluster(c.MFA2023, ggtheme = theme_minimal(), repel = TRUE, labelsize = 6)
+```
+
+# Question 4 : classification des variables
+
+```{r}
+# 1. Classification hiérarchique des variables
+res_clust <- hclustvar(
+  X.quanti = bdd_prop_mfa
+)
+
+# 2. Dendrogramme
+plot(res_clust)
+
+# 3. Choix du nombre de classes
+part <- cutreevar(res_clust, k = 3)
+
+plot(part)
+
+# # Variables par classe
+# part$var
+# 
+# # Gain de cohésion
+# part$sim
+
 ```
 
