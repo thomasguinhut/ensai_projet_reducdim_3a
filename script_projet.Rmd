@@ -70,7 +70,7 @@ unique(bdd$departement)
 
 # Question 1 : pourquoi faire une AFM ?
 
-## La structure de la base de données se prête à une AFM.
+## La structure de la base de données se prête à une AFM.. test
 
 ## La lecture des données invite à faire une AFM
 
