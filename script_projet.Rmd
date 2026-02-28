@@ -70,9 +70,8 @@ unique(bdd$departement)
 
 # Question 1 : pourquoi faire une AFM ?
 
-## La structure de la base de données se prête à une AFM.. test
+A la lecture des données, on constate que la structure de la base de données se prête à une AFM. En effet, il y a deux périodes temporelles distinctes, formant ainsi deux groupes, qu'on peut étudier simultanément lors d'une AFM. Puisque nous disposons de nombreuses variables aux deux périodes temporelles, réduire la dimension des données semble intéressant.
 
-## La lecture des données invite à faire une AFM
 
 ```{r}
 bdd_analyse <- bdd %>% 
@@ -285,12 +284,18 @@ corrplot::corrplot(cor(
   type = "upper", tl.col = "black", tl.srt = 45, tl.cex = 0.6)
 ```
 
+Cette première cartographie des corrélations apparaît peu lisible. En effet, toutes les variables ou presque sont fortement corrélées. Cela est dû au fait que certains départements produisent beaucoup et d'autres moins. Ainsi, dans un département où il y a des nombreuses créations d'entreprises en énergie, il y en aura également beaucoup dans d'autres secteurs comme la finance ou l'environnement. Cela signifie qu'il s'agit d'un département plutôt porteur en termes de créations d'entreprises. Les corrélations entre les deux périodes sont difficiles à observer ici.
+Pour mieux distinguer les corrélations, nous les observons donc sur les variables proportionnelles.
+
 ```{r}
 corrplot::corrplot(cor(
   bdd_prop[,colnames(bdd_prop) != "departement"],
                          use = "complete.obs"), method = "color",
   type = "upper", tl.col = "black", tl.srt = 45, tl.cex = 0.6)
 ```
+
+La cartographie des corrélations entre la part des secteurs au sein des créations d'entreprises par département semble donner plus d'informations. On constate tout d'abord une corrélation plutôt marquée entre les secteurs de création d'une période à l'autre. On peut également voir que certains secteurs sont corrélés négativement sur les deux périodes, comme l'industrie avec le transport, l'information et la science.
+Finalement, on constate des corrélations très distinctes entre les secteurs. Une AFM semble ainsi particulièrement pertinente pour réduire l'ensemble des ces informations.
 
 # Question 2 : mise en oeuvre de l'AFM
 
@@ -339,7 +344,7 @@ plot(res.MFA, choix = "var", axes = c(1, 2),
      select = "contrib 10")
 ```
 
-La première composante reflète un effet taille. La deuxième n'est pas marquée par beaucoup de corrélations
+La première composante reflète un effet taille. La deuxième n'est pas marquée par beaucoup de corrélations. Il semble plutôt difficile d'interpréter les projections des variables, car elles sont globalement toutes rapprochées. On peut constater que des variables comme la construction et l'information et les sciences s'opposent sur l'axe 2, qui, cependant, porte seulement 10% de l'inertie.
 
 ```{r}
 fviz_contrib(res.MFA, choice = "quanti.var", axes = 1, top = 10,
@@ -347,6 +352,8 @@ fviz_contrib(res.MFA, choice = "quanti.var", axes = 1, top = 10,
 fviz_contrib(res.MFA, choice = "quanti.var", axes = 2, top = 10,
              palette = brewer.pal(3, "Set2")[2:3])
 ```
+
+Certains secteurs prédominent la construction des axes : le commerce, la science, la construction... Ceci traduit un effet taille. En effet, ces secteurs connaissent beaucoup plus de créations d'entreprises que les autres, ce qui va naturellement influencer énormément la construction des axes de l'AFM. On pourrait normaliser les données, mais nous préférons nous intéresser plus tard à la proportion des secteurs au sein des créations d'entreprises, pour laquelle nous n'effectuons pas de normalisation.
 
 
 ```{r}
@@ -367,6 +374,9 @@ fviz_mfa_ind(res.MFA, partial = "all", invisible = "ind.sup",
                   bg.color = "white",
                   bg.r = 0.1)
 ```
+
+Paris, qui est un département particulièrement productif, prend des valeurs très élevées sur l'axe 1. Ainsi, sa présence altère la visualisation des autres départements, qui sont tous regroupés.
+
 
 ## Sur les proportions
 
@@ -389,6 +399,8 @@ res.MFAprop <- MFA(bdd_prop_mfa,
 fviz_screeplot(res.MFAprop)
 ```
 
+Ici, toute l'information n'est pas résumée sur un seul axe mais sur les 3 ou 4 premiers. Ceci semble indiquer un meilleur équilibre.
+
 ```{r}
 plot(res.MFAprop, choix = "axes", axes = c(1, 2), 
      habillage = "group",
@@ -402,6 +414,10 @@ plot(res.MFAprop, choix = "axes", axes = c(1, 3),
      cex = 0.9)
 ```
 
+
+Les différentes composantes semblent plutôt bien représentées sur les deux premiers axes, puisqu'elles atteignent les bords du cercle. Elles semblent également avoir un référentiel commun d'une période à l'autre, puisqu'au sens près, elles sont très proches.
+En revanche, elles semblent moins bien représentées sur le troisième axe, mais conservent le référentiel commun.
+
 ```{r, warning=FALSE}
 plot(res.MFAprop, choix = "var", axes = c(1, 2), 
      habillage = "group",
@@ -410,6 +426,9 @@ plot(res.MFAprop, choix = "var", axes = c(1, 2),
      cex = 0.9,
      select = "contrib 10")
 ```
+Ce cercle des corrélations semble nous apporter davantage d'informations sur les dynamiques des secteurs. On y retrouve l'opposition entre les secteurs de l'industrie et de la construction et les secteurs des sciences, de l'information et du transport. Cette opposition est présente sur les deux premiers axes. Le commerce est représenté de manière perpendiculaire aux autres secteurs, ce qui peut laisser suggérer une indépendance.
+On peut interpréter l'axe 1 comme opposant les secteurs plus traditionnels (industrie, construction, commerce) aux secteurs plus innovants (information, science) et connaissant une forte croissance aujourd'hui (avec le transport). L'axe 2 peut être perçu comme caractérisant le type de secteur : primaire et secondaire contre tertiaire. Le secteur administratif est plutôt atypique et difficile à corréler aux autres secteurs : il demeure plutôt traditionnel mais relève davantage du tertiaire que du primaire ou du secondaire.
+On peut enfin remarquer que les secteurs sont proches d'une période à l'autre.
 
 ```{r}
 fviz_contrib(res.MFAprop, choice = "quanti.var", axes = 1, top = 10,
@@ -417,6 +436,8 @@ fviz_contrib(res.MFAprop, choice = "quanti.var", axes = 1, top = 10,
 fviz_contrib(res.MFAprop, choice = "quanti.var", axes = 2, top = 10,
              palette = brewer.pal(3, "Set2")[2:3])
 ```
+
+Cette fois-ci, les contributions sont davantage équilibrées. Le commerce contribue beaucoup à la construction des axes, ainsi que d'autres secteurs comme la science, le transport ou la construction.
 
 ```{r}
 plot(res.MFAprop, choix = "group", palette = brewer.pal(3, "Set2"))
@@ -437,6 +458,8 @@ fviz_mfa_ind(res.MFAprop, partial = "all", invisible = "ind.sup",
                   bg.color = "white",
                   bg.r = 0.1)
 ```
+
+Dans cette configuration, Paris est beaucoup moins atypique et rejoint davantage d'autres départements. De fortes évolutions traduisent un changement de secteur dominant au sein d'un département. On remarque de nombreuses trajectoires similaires. Certaines, avec des traits bleus en haut à droite et des traits orange en bas, reflètent une bascule vers des secteurs très innovants du tertiaire entre 2013 et 2023. C'est le cas des Hauts-de-Seine ou du Val-de-Marne. Pour d'autres département, c'est l'inverse, comme les Alpes-de-Haute-Provence. Enfin, certains départements vont davantage s'éloigner du commerce, ce qui est illustré par des trajectoires comme celles des Ardennes ou du Territoire de Belfort.
 
 ## Sur les proportions hors Mayotte
 
@@ -504,6 +527,8 @@ fviz_mfa_ind(res.MFAprop_horsMayotte, partial = "all", invisible = "ind.sup",
                   bg.r = 0.1)
 ```
 
+En enlevant Mayotte, l'AFM devient plus lisible et plus représentative des autres départements.
+
 # Question 3 : classification des départements
 
 ## Nuage des individus moyens
@@ -522,6 +547,9 @@ c.MFA$data.clust %>%
   tbl_summary(by = clust)
 ```
 
+Les trois clusters semblent très distincts. Le premier (rouge) correspond globalement à la région parisienne, spécialisée plutôt dans des secteurs innovants comme les technologies de l'information et de la communication ou les activités scientifiques. Le second cluster (vert) semble constitué des départements de l'Ouest et du Sud-Est de la France : Loire Atlantique, Dordogne, Finistère, Alpes-Maritimes, Savoie, Corse... Ces départements seraient davantage caractérisés par une production primaire, en 2013 et/ou en 2023.  Le troisième cluster (bleu) semble s'apparenter au Nord et au centre de la France, avec le Pas-de-Calais, les Vosges ou encore le Jura. Il s'agirait de départements spécialisés plutôt dans des activités commerciales.
+
+
 ## Nuage des individus 2013
 
 ```{r}
@@ -536,6 +564,8 @@ fviz_dend(c.MFA2013, k = 5, show_labels = TRUE, rect = TRUE, cex = 0.4)
 fviz_cluster(c.MFA2013, ggtheme = theme_minimal(), repel = TRUE, labelsize = 6)
 ```
 
+Ce graphique doit être mis en relation avec la représentation des composantes de 2013 dans le cercle des corrélations précédent. Le premier cluster, représentant la région parisienne, est très hétérogène en 2013, contrairement aux autres clusters.
+
 ## Nuage des individus 2023
 
 ```{r}
@@ -549,6 +579,8 @@ c.MFA2023 <- HCPC(as.data.frame(
 fviz_dend(c.MFA2023, k = 5, show_labels = TRUE, rect = TRUE, cex = 0.4)
 fviz_cluster(c.MFA2023, ggtheme = theme_minimal(), repel = TRUE, labelsize = 6)
 ```
+
+On peut voir que l'inertie expliquée sur l'axe 1 est particulièrement importante et que les clusters sont distincts. Cela peut signifier qu'il est plus simple de distinguer les départements en 2023 qu'en 2013, et que les spécialisations sont donc plus marquées.
 
 # Question 4 : classification des variables
 
@@ -573,4 +605,6 @@ plot(part)
 # part$sim
 
 ```
+
+Difficultés à classer les variables, on retrouve pas les mêmes groupes que précédemment.
 
