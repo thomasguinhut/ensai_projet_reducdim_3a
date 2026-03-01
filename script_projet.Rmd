@@ -1,5 +1,5 @@
 ---
-title: "Projet réduction dimension (Ensai, 3A)"
+title: "Projet Clustering et réduction de dimensions (Ensai, 3A)"
 author: "Thomas Guinhut et Eulalie Delaune"
 date: "Février 2026"
 output:
@@ -60,7 +60,7 @@ bdd <- read.csv2("creation.csv") %>%
   )
 ```
 
-```{r include=FALSE}
+```{r}
 glimpse(bdd)
 ```
 
@@ -94,7 +94,7 @@ bdd_analyse <- bdd %>%
     name == "enseignement" ~ "Enseignement",
     name == "sante" ~ "Santé",
     name == "culture" ~ "Culture",
-    name == "service" ~ "Services"
+    name == "services" ~ "Services"
   ))
 ```
 
@@ -154,8 +154,7 @@ creer_graphiques_par_groupe <- function(bdd_analyse, bdd_labels_left,
   return(liste_graphiques)
 }
 
-graphiques <- creer_graphiques_par_groupe(bdd_analyse, bdd_labels_left,
-                                          bdd_labels_right, n_par_graphique = 4,
+graphiques <- creer_graphiques_par_groupe(bdd_analyse, n_par_graphique = 4,
                                           maxoverlap = 10)
 
 graphiques[[1]] 
@@ -164,7 +163,7 @@ graphiques[[3]]
 graphiques[[4]]
 ```
 
-On observe la prédominance de Paris dans certains secteurs d'activité spécialisés comme la finance, la culture, l'enseignement, la recherche, l'information et la communication. D'autres départements se démarquent dans quelques secteurs, comme la Seine-Saint-Denis pour les transports (on suppose du fait de l'aéroport Charles-de-Gaulle), le Nord pour l'industrie manufacturielle (qui est historiquement une activité importante pour ce département) et les Bouche-du-Rhone pour la construction, là où l'immobilier y est également important (supposément pour l'attrait suscité par ce département balnéaire).
+On observe la prédominance de Paris dans certains secteurs d'activité spécialisés comme la finance, la culture, l'enseignement, la recherche, l'information et la communication. D'autres départements se démarquent dans quelques secteurs, comme la Seine-Saint-Denis pour les transports (on suppose du fait de l'aéroport Charles-de-Gaulle), le Nord pour l'industrie (qui est historiquement une activité importante pour ce département) et les Bouches-du-Rhône pour la construction, là où l'immobilier y est également important (supposément pour l'attrait suscité par ce département balnéaire).
 
 Pour s'extirper du problème des individus atypiques, on propose de calculer, pour chaque année, la part de chaque secteur dans chaque département.
 
@@ -276,7 +275,7 @@ graphique_comparaison_dept(bdd_analyse, c("Paris", "Dordogne"))
 graphique_comparaison_dept(bdd_prop_analyse, c("Paris", "Dordogne"))
 ```
 
-Sur cet exemple, nous voyons que lorsque l'on compare un département-capitale et un département très rural, il est préférable d'utiliser les proportions de chaque secteur dans l'économie locale. Autrement, l'analyse se limitera à un focus sur le département qui produit le plus de tout du fait de sa structure, historique, notamment en terme de population.
+Sur cet exemple, nous voyons que lorsque l'on compare un département-capitale et un département très rural, il est préférable d'utiliser les proportions de chaque secteur dans l'économie locale. Autrement, l'analyse se limitera à un focus sur le département qui produit le plus de tout du fait de sa structure, historique, notamment en terme d'effectif de sa population.
 
 ```{r}
 corrplot::corrplot(cor(
@@ -297,7 +296,7 @@ corrplot::corrplot(cor(
 
 La cartographie des corrélations entre la part des secteurs au sein des créations d'entreprises par département semble donner plus d'informations. On constate tout d'abord une corrélation plutôt marquée entre les secteurs de création d'une période à l'autre. On peut également voir que certains secteurs sont corrélés négativement sur les deux périodes, comme l'industrie avec le transport, l'information et la science.
 
-Finalement, on constate des corrélations très distinctes entre les secteurs. Une AFM semble ainsi particulièrement pertinente pour réduire l'ensemble des ces informations.
+Finalement, on constate des corrélations très distinctes entre les secteurs. Une AFM semble ainsi particulièrement pertinente pour réduire l'ensemble de ces informations.
 
 # Question 2 : mise en oeuvre de l'AFM
 
@@ -335,6 +334,10 @@ plot(res.MFA, choix = "axes", axes = c(1, 3),
      cex = 0.9)
 ```
 
+```{r}
+plot(res.MFA, choix = "group", palette = brewer.pal(3, "Set2"))
+```
+
 Les deux premiers axes permettent de capter 95% de l'inertie du nuage des individus partiels, et les composantes construites pour 2013 et 2023 sont très proches l'une de l'autre, synonyme d'un référentiel commun pour faire une anaylse de ces deux photographies de l'activité économique.
 
 ```{r, warning=FALSE}
@@ -355,11 +358,7 @@ fviz_contrib(res.MFA, choice = "quanti.var", axes = 2, top = 10,
              palette = brewer.pal(3, "Set2")[2:3])
 ```
 
-Certains secteurs prédominent la construction des axes : le commerce, la science, la construction... Ceci traduit un effet taille. En effet, ces secteurs connaissent beaucoup plus de créations d'entreprises que les autres, ce qui va naturellement influencer énormément la construction des axes de l'AFM. On pourrait normaliser les données, mais nous préférons nous intéresser plus tard à la proportion des secteurs au sein des créations d'entreprises, pour laquelle nous n'effectuons pas de normalisation.
-
-```{r}
-plot(res.MFA, choix = "group", palette = brewer.pal(3, "Set2"))
-```
+Certains secteurs prédominent la construction des axes : le commerce, la science, la construction... Ceci traduit un effet taille. En effet, ces secteurs connaissent beaucoup plus de créations d'entreprises que les autres, ce qui va naturellement influencer énormément la construction des axes de l'AFM. Nous pourrions normaliser les données, mais nous préférons nous intéresser plus tard à la proportion des secteurs au sein des créations d'entreprises de chaque département.
 
 ```{r warning=FALSE}
 fviz_mfa_ind(res.MFA, partial = "all", invisible = "ind.sup", 
@@ -376,9 +375,9 @@ fviz_mfa_ind(res.MFA, partial = "all", invisible = "ind.sup",
                   bg.r = 0.1)
 ```
 
-Paris, qui est un département particulièrement productif, prend des valeurs très élevées sur l'axe 1. Ainsi, sa présence altère la visualisation des autres départements, qui sont tous regroupés. Sont également visibles distinctement les départements les plus peuplés du pays : ceux de la région Île-de-France, du Rhône, de la Gironde, des Bouches-du-Rhône et du Nord.
+Paris, qui est un département particulièrement productif, prend des valeurs très élevées sur l'axe 1. Ainsi, sa présence altère la visualisation des autres départements, qui sont tous regroupés. Restent également visibles distinctement les autres départements les plus peuplés du pays : ceux de la région Île-de-France, du Rhône, de la Gironde, des Bouches-du-Rhône et du Nord.
 
-Le reste des départements n'étant même visible tellement ils sont contonnés autours des mêmes coordonées factorielles, nous proposons d'appliquer la même technique d'analyse sur la base des proportions.
+Le reste des départements n'étant pas visibles tellement ils sont contonnés autours des mêmes coordonées factorielles, nous proposons d'appliquer la même technique d'analyse sur la base des proportions.
 
 ## Sur les proportions
 
@@ -416,6 +415,10 @@ plot(res.MFAprop, choix = "axes", axes = c(1, 3),
      cex = 0.9)
 ```
 
+```{r}
+plot(res.MFAprop, choix = "group", palette = brewer.pal(3, "Set2"))
+```
+
 Les différentes composantes semblent plutôt bien représentées sur les deux premiers axes, puisqu'elles atteignent les bords du cercle. Elles semblent également avoir un référentiel commun d'une période à l'autre, puisqu'au sens près, elles sont très proches.
 
 En revanche, elles semblent moins bien représentées sur le troisième axe, mais conservent le référentiel commun.
@@ -443,10 +446,6 @@ fviz_contrib(res.MFAprop, choice = "quanti.var", axes = 2, top = 10,
 ```
 
 Cette fois-ci, les contributions sont davantage équilibrées. Le commerce contribue beaucoup à la construction des axes, ainsi que d'autres secteurs comme la science, le transport ou la construction.
-
-```{r}
-plot(res.MFAprop, choix = "group", palette = brewer.pal(3, "Set2"))
-```
 
 ```{r warning=FALSE}
 fviz_mfa_ind(res.MFAprop, partial = "all", invisible = "ind.sup", 
@@ -496,6 +495,10 @@ plot(res.MFAprop_horsMayotte, choix = "axes", axes = c(1, 3),
 ```
 
 ```{r}
+plot(res.MFAprop_horsMayotte, choix = "group", palette = brewer.pal(3, "Set2"))
+```
+
+```{r}
 plot(res.MFAprop_horsMayotte, choix = "var", axes = c(1, 2), 
      habillage = "group",
      palette = brewer.pal(3, "Set2"),
@@ -511,9 +514,36 @@ fviz_contrib(res.MFAprop_horsMayotte, choice = "quanti.var", axes = 2, top = 10,
              palette = brewer.pal(3, "Set2")[2:3])
 ```
 
+Les principaux commentaires écrits précédemment restent valables. Le retrait de Mayotte de la construction des axes a toutefois rendu très importante la part du secteur du commerce, plus spécifiquement celle de 2013.
+
 ```{r}
-plot(res.MFAprop_horsMayotte, choix = "group", palette = brewer.pal(3, "Set2"))
+bdd_prop_evolution_commerce <- bdd_prop %>%
+  mutate(
+    variation_relative = (commerce_2023 - commerce_2013) / commerce_2013 * 100
+  ) %>%
+  arrange(desc(variation_relative))
+
+ggplot(bdd_prop_evolution_commerce, aes(x = reorder(departement, variation_relative),
+                                   y = variation_relative, fill = variation_relative > 0)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Évolution relative (%) des parts du commerce (2013-2023)",
+       x = "Département",
+       y = "Variation relative (%)",
+       fill = "") +
+  scale_fill_manual(values = c("red", "green"), labels = c("Diminution", "Augmentation")) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 4))
+
+bdd_prop_evolution_commerce %>% 
+  dplyr::select(departement, commerce_2013, commerce_2023) %>% 
+  arrange(desc(commerce_2013))
+
+boxplot(bdd_prop_evolution_commerce$commerce_2013)
+boxplot(bdd_prop_evolution_commerce$commerce_2023)
 ```
+
+Pourtant, on aurait pu penser l'inverse comme Mayotte avait une certaine particularité en tant que département avec la part du commerce le plus haut, que ce soit en 2013 ou en 2023. Mais le département est aussi celui qui a connu la baisse la plus faible de cette part en dix ans. Ainsi, en retirant Mayotte, il semble que l'axe 2 est maintenant en très grande partie construite par les valeurs du commerce de 2013 du fait que celles-ci se distinguent très nettement de celles de 2023. 
 
 ```{r}
 fviz_mfa_ind(res.MFAprop_horsMayotte, partial = "all", invisible = "ind.sup", 
@@ -532,7 +562,7 @@ fviz_mfa_ind(res.MFAprop_horsMayotte, partial = "all", invisible = "ind.sup",
                   bg.r = 0.1)
 ```
 
-En enlevant Mayotte, l'AFM devient plus lisible et plus représentative des autres départements.
+En enlevant Mayotte, l'AFM devient nettement plus lisible et plus représentative des autres départements.
 
 # Question 3 : classification des départements
 
@@ -552,7 +582,7 @@ c.MFA$data.clust %>%
   tbl_summary(by = clust)
 ```
 
-Les trois clusters semblent très distincts. Le premier (rouge) correspond globalement à la région parisienne, spécialisée plutôt dans des secteurs innovants comme les technologies de l'information et de la communication ou les activités scientifiques. Le second cluster (vert) semble constitué des départements de l'Ouest et du Sud-Est de la France : Loire Atlantique, Dordogne, Finistère, Alpes-Maritimes, Savoie, Corse... Ces départements seraient davantage caractérisés par une production primaire, en 2013 et/ou en 2023.  Le troisième cluster (bleu) semble s'apparenter au Nord et au centre de la France, avec le Pas-de-Calais, les Vosges ou encore le Jura. Il s'agirait de départements spécialisés plutôt dans des activités commerciales.
+Les trois clusters (nombre choisi automatiquement avec un algorithme répliquant le critère du coude) obtenus par CAH semblent très distincts. Le premier (rouge) correspond globalement à la région parisienne, spécialisée plutôt dans des secteurs innovants comme les technologies de l'information et de la communication ou les activités scientifiques. Le second cluster (vert) semble constitué des départements de l'Ouest et du Sud-Est de la France : Loire Atlantique, Dordogne, Finistère, Alpes-Maritimes, Savoie, Corse... Ces départements seraient davantage caractérisés par une production primaire, en 2013 et/ou en 2023.  Le troisième cluster (bleu) semble s'apparenter au Nord et au centre de la France, avec le Pas-de-Calais, les Vosges ou encore le Jura. Il s'agirait de départements spécialisés plutôt dans des activités commerciales.
 
 ## Nuage des individus 2013
 
@@ -612,3 +642,29 @@ plot(part)
 
 Difficultés à classer les variables, on retrouve pas les mêmes groupes que précédemment.
 
+# Synthèse de nos résultats
+
+Nous étudiants ici les créations d’entreprise à l’échelle des départements français et entre 2013 et 2023.
+
+Deux méthodes sont possibles :
+- analyser le nombre brut d’entreprises créées par secteur et par département,
+- étudier l’importance relative des secteurs d’activité parmi l'ensemble des créations d’entreprise de chaque département.
+
+Cette dernière méthode permet une meilleure comparaison des dynamiques de production entre départements. En effet, lorsqu’on compare uniquement le nombre d’entreprises créées d’un département à l’autre et d’un secteur à un autre, on se heurte à un effet taille : les départements les plus productifs le sont, généralement, pour la majorité des secteurs d’activité. Parmi les départements concernés se trouvent ceux les plus peuplés : ceux de la région Île-de-France. Les productions dans l’ensemble des secteurs sont alors corrélées, ce qui invisibilise des relations entre des secteurs pour lesquels la production est plus faible.
+
+A l'inverse, lorsqu’on étudie l’ensemble des secteurs simultanément relativement aux créations d'entreprises de chaque département, on constate des relations fortes :
+
+- Tout d’abord, l’industrie et la construction sont deux secteurs liés, c’est-à-dire qu’on département qui
+connaît beaucoup de créations d’entreprises en construction va également connaître de nombreuses
+créations d’entreprises industrielles.
+
+- De même, des secteurs très innovants comme la science et l’information sont regroupés, et semblent s’opposer aux deux secteurs précédents. Cela indique que les départements pour lesquels il y a de nombreuses créations d’entreprises en science ou en information sont des départements où la production industrielle sera relativement moins présente. Cependant, cela ne veut pas dire qu’il y a peu d’entreprises créées pour l’industrie ou la construction dans ces départements ; il y en a juste nettement moins en comparaison aux secteurs de l’information et de la science. A l’inverse, certains départements moins productifs peuvent être considérés comme industriels alors même qu’ils connaissent moins de créations
+d’entreprises en industrie que d’autres départements. C’est le cas si les entreprises qui y sont créées, relativement peu nombreuses, sont avant tout industrielles.
+
+- Enfin, le commerce semble être indépendant des autres secteurs. Autrement dit, certains départements sont concernés par des créations d’entreprises commerciales ou industrielles, d’autres par des entreprises commerciales ou scientifique, et d’autres principalement commerciales.
+
+Notons que la différence entre les deux périodes est peu visible : les secteurs sont généralement liés deux-à-deux d’une période à l’autre, soulevant un référentiel commun : qu'importe les variations, les hiéérarchies entre les secteurs semblent préserver sur dix ans. 
+
+A l’aune de cette étude des secteurs, il est possible de regrouper les départements en catégories afin d’analyser leur dynamique productive. La région parisienne se distingue par une structure productive qui lui est propre. Les créations d’entreprises se font majoritairement dans des secteurs innovants comme l’information ou la science, ou dans des secteurs en forte croissance comme le transport. A l’inverse, il y a relativement moins d’entreprises créées dans les secteurs de l’industrie et de la construction. On retrouve la dynamique économique de la technopole, basée sur des secteurs à grande valeur ajoutée. Cette dynamique a semblé s’accélérer entre 2013 et 2023. Un deuxième groupe semble se dégager, regroupant l’Ouest de la France et le sud-Est. Celui-ci est concerné par de nombreuses créations d’entreprises dans les secteurs primaires et secondaires. Phrase sur l’évolution. Un dernier groupe associe les départements du Nord, de l’Est et du Sud de la France, pour lesquels les entreprises créées sont généralement commerciales. Evolution ?
+
+Il est finalement possible de classer les secteurs en catégories.
