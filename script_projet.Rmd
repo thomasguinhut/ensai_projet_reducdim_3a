@@ -235,7 +235,7 @@ graphiques_prop[[3]]
 graphiques_prop[[4]]
 ```
 
-Cette fois-ci, il n'y pas de département qui semble se distinguer, si ce n'est Mayotte pour la construction. Il sera éventuellement à mettre en supplémentaire lors de l'AFM.
+Cette fois-ci, il n'y pas de département qui semble se distinguer, si ce n'est Mayotte pour la commerce. Il sera éventuellement à mettre en supplémentaire lors de l'AFM.
 
 ```{r}
 graphique_comparaison_dept <- function(bdd_analyse, departements,
