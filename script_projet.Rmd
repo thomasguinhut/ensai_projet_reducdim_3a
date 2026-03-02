@@ -619,25 +619,11 @@ On peut voir que l'inertie expliquée sur l'axe 1 est particulièrement importan
 # Question 4 : classification des variables
 
 ```{r}
-# 1. Classification hiérarchique des variables
-res_clust <- hclustvar(
-  X.quanti = bdd_prop_mfa
-)
-
-# 2. Dendrogramme
-plot(res_clust)
-
-# 3. Choix du nombre de classes
-part <- cutreevar(res_clust, k = 3)
-
+res_clust <- hclustvar(bdd_prop_mfa)
+plot(res_clust, main="Clustering des variables")
+rect.hclust(res_clust, k=2)
+part <- cutreevar(res_clust, k = 2)
 plot(part)
-
-# # Variables par classe
-# part$var
-# 
-# # Gain de cohésion
-# part$sim
-
 ```
 
 Difficultés à classer les variables, on retrouve pas les mêmes groupes que précédemment.
