@@ -577,6 +577,9 @@ fviz_dend(c.MFA, k = 5, show_labels = TRUE, rect = TRUE, cex = 0.4)
 fviz_cluster(c.MFA, ggtheme = theme_minimal(), repel = TRUE, labelsize = 6)
 ```
 
+Il semble cohérent de choisir trois ou quatre clusters. Nous en choisissons trois.
+
+
 ```{r}
 c.MFA$data.clust %>% 
   tbl_summary(by = clust)
@@ -625,8 +628,10 @@ rect.hclust(res_clust, k=2)
 part <- cutreevar(res_clust, k = 2)
 plot(part)
 ```
+D'après le dendogramme, il semble cohérent de choisir 2 clusters.
+Cette classification paraît moins intuitive car des secteurs qu'on pensait opposés se retrouvent classés dans le même groupe. Cependant, cela est cohérent, car la fonction hclust associe les secteurs qui sont corrélés positivement comme négativement. Ainsi, on retrouve dans le premier clusters les secteurs de l'industrie et de la construction, ainsi que les secteurs de l'information, du transport ou de la science qui y sont particulièrement corrélés (négativement). On y retrouve également les secteurs de la finance et de l'hotellerie, associés positivement aux secteurs tertiaires innovants.
+Le second cluster regroupe des variables qui sont peu corrélées au premier groupe et très corrélées entre elles. Il contient le commerce, qui est un secteur particulièrement productif, l'énergie et l'environnement ainsi que des secteurs plus 'petits' qui y sont négativement corrélés, comme l'enseignement, la culture ou la santé.
 
-Difficultés à classer les variables, on retrouve pas les mêmes groupes que précédemment.
 
 # Synthèse de nos résultats
 
@@ -651,6 +656,9 @@ d’entreprises en industrie que d’autres départements. C’est le cas si les
 
 Notons que la différence entre les deux périodes est peu visible : les secteurs sont généralement liés deux-à-deux d’une période à l’autre, soulevant un référentiel commun : qu'importe les variations, les hiéérarchies entre les secteurs semblent préserver sur dix ans. 
 
-A l’aune de cette étude des secteurs, il est possible de regrouper les départements en catégories afin d’analyser leur dynamique productive. La région parisienne se distingue par une structure productive qui lui est propre. Les créations d’entreprises se font majoritairement dans des secteurs innovants comme l’information ou la science, ou dans des secteurs en forte croissance comme le transport. A l’inverse, il y a relativement moins d’entreprises créées dans les secteurs de l’industrie et de la construction. On retrouve la dynamique économique de la technopole, basée sur des secteurs à grande valeur ajoutée. Cette dynamique a semblé s’accélérer entre 2013 et 2023. Un deuxième groupe semble se dégager, regroupant l’Ouest de la France et le sud-Est. Celui-ci est concerné par de nombreuses créations d’entreprises dans les secteurs primaires et secondaires. Phrase sur l’évolution. Un dernier groupe associe les départements du Nord, de l’Est et du Sud de la France, pour lesquels les entreprises créées sont généralement commerciales. Evolution ?
+A l’aune de cette étude des secteurs, il est possible de regrouper les départements en catégories afin d’analyser leur dynamique productive. La région parisienne se distingue par une structure productive qui lui est propre. Les créations d’entreprises se font majoritairement dans des secteurs innovants comme l’information ou la science, ou dans des secteurs en forte croissance comme le transport. A l’inverse, il y a relativement moins d’entreprises créées dans les secteurs de l’industrie et de la construction. On retrouve la dynamique économique de la technopole, basée sur des secteurs à grande valeur ajoutée. Cette dynamique a semblé s’accélérer entre 2013 et 2023. Un deuxième groupe semble se dégager, regroupant l’Ouest de la France et le sud-Est. Celui-ci est concerné par de nombreuses créations d’entreprises dans les secteurs primaires et secondaires, en particulier en 2023. Un dernier groupe associe les départements du Nord, de l’Est et du Sud de la France, pour lesquels les entreprises créées sont généralement commerciales. Cette tendance est moins forte en 2023 qu'en 2013.
 
-Il est finalement possible de classer les secteurs en catégories.
+Il est finalement possible de classer les secteurs de créations d'entreprises en deux catégories. La première regroupe les deux pôles productifs principaux en France : l'industrie et la construction (le secteur secondaire) et le transport, la science et la communication (secteurs innovants et/ou à forte croissance). Ces deux pôles s'opposent dans la dynamique productive française. On y retrouve également la finance ou l'hotellerie, qui sont rattachées aux secteurs à forte croissance.
+La seconde catégorie regroupe des secteurs qui sont peu corrélés à la première catégorie, notamment le commerce. D'autres secteurs moins productifs y sont présents. On trouve l'environnement et l'énergie, qui sont généralement associés à la production commerciale. A l'inverse, on trouve des secteurs plus proches de questions sociales, comme la santé, l'enseignement et la culture. Ainsi, un département qui connaît de nombreuses créations d'entreprises commerciales est davantage enclin à en connaître également dans des secteurs environnementaux Par contre, il est plus probable qu'il en connaisse moins dans les domaines sociaux, comme l'enseignement ou la santé. Il est difficile d'en déduire des informations sur les créations d'entreprises industrielles ou dans des domaines innovants, puisque ces domaines sont peu corrélés à ceux cités précédemment.
+
+En somme, la structure productive française est très variée. Il semble plus intéressant d'étudier les créations d'entreprises relativement à la production départementale. Celles-ci concernent des secteurs particulièrement différents d'un département à un autre. Il est possible de regrouper les départements en trois catégories distinctes, et les secteurs d'activité en deux groupes indépendants.
